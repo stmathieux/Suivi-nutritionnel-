@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Suivi nutrition & sport</title>
+<style>
+:root{
+  --bg:#0f172a; --card:#1f2937; --card2:#111827; --line:#334155;
+  --text:#f8fafc; --muted:#94a3b8; --green:#22c55e; --blue:#38bdf8; --red:#ef4444;
+}
+*{box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:linear-gradient(180deg,#0b1220,#111827);color:var(--text);margin:0;min-height:100vh}
+header{position:sticky;top:0;z-index:10;background:rgba(15,23,42,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.wrap{max-width:820px;margin:auto;padding:16px}
+h1{font-size:22px;margin:0 0 4px} h2{font-size:18px;margin:0 0 10px} h3{font-size:15px;margin:0 0 8px}
+.small,.muted{color:var(--muted);font-size:13px}
+.card{background:rgba(31,41,55,.96);border:1px solid var(--line);border-radius:18px;padding:14px;margin:12px 0;box-shadow:0 8px 26px rgba(0,0,0,.18)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+input,select,button{font:inherit}
+input,select{width:100%;background:#0b1220;color:#fff;border:1px solid var(--line);border-radius:12px;padding:10px}
+button{border:0;border-radius:12px;padding:10px 12px;font-weight:700;cursor:pointer}
+.btn{background:var(--green);color:#052e16}
+.btn2{background:#0ea5e9;color:#fff}
+.ghost{background:#243244;color:#e2e8f0}
+.danger{background:#7f1d1d;color:#fecaca}
+.tabs{display:flex;gap:8px;overflow:auto;padding:12px 0}
+.tabs button{background:#1e293b;color:#cbd5e1;white-space:nowrap}
+.tabs button.active{background:var(--green);color:#052e16}
+.hidden{display:none!important}
+.stat{font-size:26px;font-weight:800}
+.bar{height:9px;background:#243244;border-radius:999px;overflow:hidden;margin-top:8px}
+.bar span{display:block;height:100%;background:var(--green)}
+.entry{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid #334155}
+.entry:first-child{border-top:0}
+.pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#172033;color:#cbd5e1;font-size:12px}
+.mealHead{display:flex;align-items:center;justify-content:space-between;gap:10px}
+canvas{width:100%;height:220px;background:#0b1220;border-radius:14px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:8px 6px;border-bottom:1px solid #334155;text-align:left}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 40px}
+@media(max-width:650px){
+  .row,.grid4{grid-template-columns:1fr}
+  .grid4.twoMobile{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>Suivi nutrition & sport</h1>
+    <div class="muted">Version locale — données stockées dans ce navigateur</div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="tabs">
+    <button class="active" data-tab="today">Aujourd’hui</button>
+    <button data-tab="history">Historique</button>
+    <button data-tab="foods">Aliments</button>
+    <button data-tab="goals">Objectifs</button>
+  </div>
+
+  <section id="today" class="tabPage">
+    <div class="card">
+      <div class="row">
+        <div><label class="small">Date</label><input id="date" type="date"></div>
+        <div><label class="small">Poids (kg)</label><input id="weight" type="number" step="0.1"></div>
+      </div>
+      <button class="btn2" id="saveWeight" style="margin-top:10px">Enregistrer la pesée</button>
+    </div>
+
+    <div class="grid4 twoMobile">
+      <div class="card"><div class="stat" id="kcalStat">0</div><div class="small">kcal consommées</div><div class="bar"><span id="kcalBar"></span></div><div class="small" id="kcalGoalText"></div></div>
+      <div class="card"><div class="stat" id="protStat">0 g</div><div class="small">protéines</div><div class="bar"><span id="protBar"></span></div><div class="small" id="protGoalText"></div></div>
+      <div class="card"><div class="stat" id="sportStat">0</div><div class="small">kcal actives</div></div>
+      <div class="card"><div class="stat" id="netStat">0</div><div class="small">kcal - sport</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Ajouter un aliment</h2>
+      <div class="row">
+        <select id="meal">
+          <option>Petit-déjeuner</option><option>Déjeuner</option><option>Dîner</option><option>Collation</option>
+        </select>
+        <select id="food"></select>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <input id="qty" type="number" value="100" min="1" placeholder="Quantité en g">
+        <button class="btn" id="addFood">Ajouter au repas</button>
+      </div>
+    </div>
+
+    <div id="meals"></div>
+
+    <div class="card">
+      <h2>Sport</h2>
+      <div class="row">
+        <input id="sportName" placeholder="Ex. Tennis">
+        <input id="sportMin" type="number" placeholder="Durée (min)">
+      </div>
+      <div class="row" style="margin-top:10px">
+        <input id="sportKcal" type="number" placeholder="kcal actives">
+        <button class="btn2" id="addSport">Ajouter</button>
+      </div>
+      <div id="sports"></div>
+    </div>
+  </section>
+
+  <section id="history" class="tabPage hidden">
+    <div class="card">
+      <h2>Évolution du poids</h2>
+      <canvas id="weightChart" width="760" height="220"></canvas>
+      <div class="small" style="margin-top:8px">La courbe utilise les pesées enregistrées dans l’application.</div>
+    </div>
+    <div class="card">
+      <h2>Historique des journées</h2>
+      <div id="historyList"></div>
+    </div>
+  </section>
+
+  <section id="foods" class="tabPage hidden">
+    <div class="card">
+      <h2>Ajouter un aliment favori</h2>
+      <div class="row">
+        <input id="newName" placeholder="Nom">
+        <input id="newKcal" type="number" step="0.1" placeholder="kcal / 100 g">
+      </div>
+      <div class="row" style="margin-top:10px">
+        <input id="newProt" type="number" step="0.1" placeholder="protéines / 100 g">
+        <button class="btn" id="addFavorite">Ajouter</button>
+      </div>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th>Aliment</th><th>kcal</th><th>Prot.</th><th></th></tr></thead>
+        <tbody id="foodsTable"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="goals" class="tabPage hidden">
+    <div class="card">
+      <h2>Objectifs quotidiens</h2>
+      <div class="row">
+        <div><label class="small">Calories</label><input id="goalKcal" type="number"></div>
+        <div><label class="small">Protéines (g)</label><input id="goalProt" type="number"></div>
+      </div>
+      <button class="btn" id="saveGoals" style="margin-top:10px">Enregistrer</button>
+    </div>
+
+    <div class="card">
+      <h2>Sauvegarde</h2>
+      <div class="row">
+        <button class="ghost" id="export">Exporter mes données</button>
+        <label class="ghost" style="padding:10px 12px;border-radius:12px;text-align:center;font-weight:700;cursor:pointer">
+          Importer
+          <input id="importFile" type="file" accept=".json" class="hidden">
+        </label>
+      </div>
+      <button class="danger" id="reset" style="margin-top:10px">Tout effacer</button>
+    </div>
+  </section>
+
+  <footer>Version locale v2</footer>
+</main>
+
+<script>
+const KEY="suivi_local_v2";
+const defaults=[
+{name:"Skyr",kcal:56,prot:9.3},
+{name:"Filet de poulet",kcal:113,prot:23},
+{name:"Compote SSA",kcal:57,prot:0},
+{name:"Banane",kcal:89,prot:1.1},
+{name:"Amandes",kcal:640,prot:20},
+{name:"Chia",kcal:490,prot:17},
+{name:"Haricots verts",kcal:20,prot:1.7},
+{name:"Petits pois-carottes",kcal:59,prot:3.6},
+{name:"Flageolets",kcal:85,prot:5.6},
+{name:"Rôti de porc",kcal:127,prot:24},
+{name:"Colin d'Alaska",kcal:67,prot:15},
+{name:"Riz cuit",kcal:130,prot:2.7},
+{name:"Framboises",kcal:48,prot:1.2},
+{name:"Lait demi-écrémé",kcal:47,prot:3.2}
+];
+
+function initialState(){return {foods:defaults,days:{},goals:{kcal:2000,prot:120}}}
+let state;
+try{state=JSON.parse(localStorage.getItem(KEY))||initialState()}catch(e){state=initialState()}
+const el=id=>document.getElementById(id);
+const save=()=>localStorage.setItem(KEY,JSON.stringify(state));
+const today=()=>{const d=new Date();return new Date(d-d.getTimezoneOffset()*60000).toISOString().slice(0,10)}
+el("date").value=today();
+
+function getDay(date){
+  if(!state.days[date])state.days[date]={weight:null,entries:[],sports:[]};
+  return state.days[date];
+}
+function currentDay(){return getDay(el("date").value)}
+function totals(d){
+  const kcal=d.entries.reduce((s,e)=>s+e.kcal,0);
+  const prot=d.entries.reduce((s,e)=>s+e.prot,0);
+  const sport=d.sports.reduce((s,e)=>s+(Number(e.kcal)||0),0);
+  return {kcal,prot,sport,net:kcal-sport};
+}
+function renderFoodsSelect(){
+  el("food").innerHTML="";
+  state.foods.slice().sort((a,b)=>a.name.localeCompare(b.name)).forEach((f)=>{
+    const idx=state.foods.indexOf(f);
+    const o=document.createElement("option");
+    o.value=idx;o.textContent=`${f.name} — ${f.kcal} kcal / ${f.prot} g prot`;
+    el("food").appendChild(o);
+  })
+}
+function renderFoodsTable(){
+  const tb=el("foodsTable");tb.innerHTML="";
+  state.foods.forEach((f,i)=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${f.name}</td><td>${f.kcal}</td><td>${f.prot} g</td><td><button class="danger" data-del="${i}">×</button></td>`;
+    tb.appendChild(tr)
+  });
+  tb.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{state.foods.splice(Number(b.dataset.del),1);save();renderFoodsSelect();renderFoodsTable()})
+}
+function renderToday(){
+  const d=currentDay(),t=totals(d);
+  el("weight").value=d.weight??"";
+  el("kcalStat").textContent=Math.round(t.kcal);
+  el("protStat").textContent=t.prot.toFixed(1)+" g";
+  el("sportStat").textContent=Math.round(t.sport);
+  el("netStat").textContent=Math.round(t.net);
+  el("kcalGoalText").textContent=`/ ${state.goals.kcal} kcal`;
+  el("protGoalText").textContent=`/ ${state.goals.prot} g`;
+  el("kcalBar").style.width=Math.min(100,t.kcal/state.goals.kcal*100)+"%";
+  el("protBar").style.width=Math.min(100,t.prot/state.goals.prot*100)+"%";
+
+  const meals=el("meals");meals.innerHTML="";
+  ["Petit-déjeuner","Déjeuner","Dîner","Collation"].forEach(m=>{
+    const arr=d.entries.filter(e=>e.meal===m);
+    const sk=arr.reduce((s,e)=>s+e.kcal,0), sp=arr.reduce((s,e)=>s+e.prot,0);
+    const c=document.createElement("div");c.className="card";
+    c.innerHTML=`<div class="mealHead"><h2>${m}</h2><span class="pill">${Math.round(sk)} kcal · ${sp.toFixed(1)} g prot</span></div>`;
+    if(!arr.length)c.innerHTML+=`<div class="muted">Aucun aliment</div>`;
+    arr.forEach(e=>{
+      const r=document.createElement("div");r.className="entry";
+      r.innerHTML=`<div><b>${e.name}</b><div class="small">${e.qty} g · ${Math.round(e.kcal)} kcal · ${e.prot.toFixed(1)} g prot</div></div>`;
+      const b=document.createElement("button");b.className="danger";b.textContent="×";b.onclick=()=>{d.entries=d.entries.filter(x=>x.id!==e.id);save();renderToday()};
+      r.appendChild(b);c.appendChild(r)
+    });meals.appendChild(c)
+  });
+
+  const s=el("sports");s.innerHTML="";
+  d.sports.forEach(a=>{
+    const r=document.createElement("div");r.className="entry";
+    r.innerHTML=`<div><b>${a.name}</b><div class="small">${a.min} min · ${a.kcal} kcal actives</div></div>`;
+    s.appendChild(r)
+  })
+}
+function renderHistory(){
+  const list=el("historyList");list.innerHTML="";
+  const dates=Object.keys(state.days).sort().reverse();
+  if(!dates.length)list.innerHTML='<div class="muted">Pas encore de données.</div>';
+  dates.forEach(date=>{
+    const d=state.days[date],t=totals(d);
+    const r=document.createElement("div");r.className="entry";
+    r.innerHTML=`<div><b>${date}</b><div class="small">${d.weight?d.weight+" kg · ":""}${Math.round(t.kcal)} kcal · ${t.prot.toFixed(1)} g prot · ${Math.round(t.sport)} kcal sport</div></div>`;
+    const b=document.createElement("button");b.className="ghost";b.textContent="Ouvrir";b.onclick=()=>{el("date").value=date;activate("today");renderToday()};
+    r.appendChild(b);list.appendChild(r)
+  });
+  drawWeightChart();
+}
+function drawWeightChart(){
+  const c=el("weightChart"),ctx=c.getContext("2d");
+  ctx.clearRect(0,0,c.width,c.height);
+  const pts=Object.entries(state.days).filter(([d,v])=>v.weight).sort((a,b)=>a[0].localeCompare(b[0]));
+  ctx.fillStyle="#0b1220";ctx.fillRect(0,0,c.width,c.height);
+  if(pts.length<2){
+    ctx.fillStyle="#94a3b8";ctx.font="16px sans-serif";ctx.fillText("Ajoute au moins 2 pesées pour afficher une courbe.",20,40);return
+  }
+  const weights=pts.map(x=>x[1].weight),min=Math.min(...weights)-.5,max=Math.max(...weights)+.5;
+  const pad=34,w=c.width-pad*2,h=c.height-pad*2;
+  ctx.strokeStyle="#334155";ctx.lineWidth=1;
+  for(let i=0;i<5;i++){const y=pad+h*i/4;ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(pad+w,y);ctx.stroke()}
+  ctx.strokeStyle="#22c55e";ctx.lineWidth=3;ctx.beginPath();
+  pts.forEach(([d,v],i)=>{
+    const x=pad+w*(i/(pts.length-1));
+    const y=pad+h*(1-(v.weight-min)/(max-min));
+    if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+  });ctx.stroke();
+  ctx.fillStyle="#cbd5e1";ctx.font="12px sans-serif";
+  ctx.fillText(max.toFixed(1)+" kg",4,pad+4);ctx.fillText(min.toFixed(1)+" kg",4,pad+h);
+  ctx.fillText(pts[0][0].slice(5),pad,c.height-8);ctx.fillText(pts[pts.length-1][0].slice(5),c.width-pad-35,c.height-8);
+}
+function activate(name){
+  document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("active",b.dataset.tab===name));
+  document.querySelectorAll(".tabPage").forEach(p=>p.classList.toggle("hidden",p.id!==name));
+  if(name==="history")renderHistory();
+  if(name==="foods")renderFoodsTable();
+  if(name==="goals"){el("goalKcal").value=state.goals.kcal;el("goalProt").value=state.goals.prot}
+}
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>activate(b.dataset.tab));
+
+el("date").onchange=renderToday;
+el("saveWeight").onclick=()=>{currentDay().weight=Number(el("weight").value)||null;save();renderToday()};
+el("addFood").onclick=()=>{
+  const f=state.foods[Number(el("food").value)],q=Number(el("qty").value);
+  if(!f||!q)return;
+  currentDay().entries.push({id:Date.now()+Math.random(),meal:el("meal").value,name:f.name,qty:q,kcal:f.kcal*q/100,prot:f.prot*q/100});
+  save();renderToday()
+};
+el("addSport").onclick=()=>{
+  if(!el("sportName").value.trim())return;
+  currentDay().sports.push({name:el("sportName").value.trim(),min:Number(el("sportMin").value)||0,kcal:Number(el("sportKcal").value)||0});
+  el("sportName").value="";el("sportMin").value="";el("sportKcal").value="";
+  save();renderToday()
+};
+el("addFavorite").onclick=()=>{
+  const name=el("newName").value.trim(),kcal=Number(el("newKcal").value),prot=Number(el("newProt").value);
+  if(!name||Number.isNaN(kcal)||Number.isNaN(prot))return;
+  state.foods.push({name,kcal,prot});save();renderFoodsSelect();renderFoodsTable();
+  el("newName").value="";el("newKcal").value="";el("newProt").value=""
+};
+el("saveGoals").onclick=()=>{
+  state.goals.kcal=Number(el("goalKcal").value)||2000;state.goals.prot=Number(el("goalProt").value)||120;
+  save();renderToday()
+};
+el("export").onclick=()=>{
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="suivi-nutrition-sport.json";a.click()
+};
+el("importFile").onchange=async(e)=>{
+  const f=e.target.files[0];if(!f)return;
+  try{state=JSON.parse(await f.text());save();renderFoodsSelect();renderFoodsTable();renderToday();renderHistory();alert("Import réussi")}
+  catch(err){alert("Fichier invalide")}
+};
+el("reset").onclick=()=>{if(confirm("Tout effacer ?")){localStorage.removeItem(KEY);state=initialState();save();renderFoodsSelect();renderToday()}};
+
+renderFoodsSelect();renderToday();
+</script>
+</body>
+</html>
